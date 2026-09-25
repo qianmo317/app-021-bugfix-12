@@ -1,5 +1,5 @@
 import type { ClassEntity, Student } from '../src/types'
-import { buildSeats, middleColSet } from '../src/lib/layout'
+import { buildSeats, hasAisleAccess, middleColSet } from '../src/lib/layout'
 import { mulberry32, shuffle } from '../src/lib/rng'
 
 let counter = 0
@@ -132,8 +132,7 @@ export function randomClass(seed: number): ClassEntity {
         const okFront = st.vision !== 'front_required' || s.row < cls.constraints.frontRows
         const okMid = st.vision !== 'middle_required' || mc.has(s.col)
         const okHear = !st.special?.includes('hearing') || s.row < Math.ceil(rows / 2)
-        const okMob =
-          !st.special?.includes('mobility') || s.tags.includes('aisle') || s.col === 0 || s.col === cols - 1
+        const okMob = !st.special?.includes('mobility') || hasAisleAccess(cls.layout, s)
         return okFront && okMid && okHear && okMob
       }),
       rng,

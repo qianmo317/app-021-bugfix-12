@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSeatIndex, buildSeats, middleColSet, positionScore } from '../src/lib/layout'
+import { buildSeatIndex, buildSeats, hasAisleAccess, middleColSet, positionScore } from '../src/lib/layout'
 import type { LayoutConfig } from '../src/types'
 
 const layout: LayoutConfig = { rows: 3, cols: 6, aisles: [2], mode: 'rows', doorSide: 'right' }
@@ -19,6 +19,47 @@ describe('座位布局', () => {
     expect(r1c2.tags).toContain('aisle') // 过道在 col2|col3 之间
     const r1c3 = seats.find((s) => s.id === 'r1c3')!
     expect(r1c3.tags).toContain('aisle')
+  })
+
+  it('门与窗固定在设置的一侧：doorSide=left 时门在左、窗在右', () => {
+    const left: LayoutConfig = { ...layout, doorSide: 'left' }
+    const byId = new Map(buildSeats(left).map((s) => [s.id, s]))
+    for (let r = 0; r < left.rows; r++) {
+      const doorSeat = byId.get(`r${r}c0`)!
+      expect(doorSeat.tags).toContain('door')
+      expect(doorSeat.tags).not.toContain('window')
+      const windowSeat = byId.get(`r${r}c${left.cols - 1}`)!
+      expect(windowSeat.tags).toContain('window')
+      expect(windowSeat.tags).not.toContain('door')
+    }
+    // 改回 right：门回到最右列
+    const right = new Map(buildSeats(layout).map((s) => [s.id, s]))
+    expect(right.get('r0c5')!.tags).toContain('door')
+    expect(right.get('r0c0')!.tags).toContain('window')
+  })
+
+  it('靠过道唯一规矩：首末列与过道旁都算，标记与判定一致', () => {
+    const seats = buildSeats(layout) // 3×6，过道在 col2|col3
+    const byId = new Map(seats.map((s) => [s.id, s]))
+    // 首末列（两侧边缘）
+    expect(byId.get('r1c0')!.tags).toContain('aisle')
+    expect(byId.get('r1c5')!.tags).toContain('aisle')
+    // 过道旁
+    expect(byId.get('r1c2')!.tags).toContain('aisle')
+    expect(byId.get('r1c3')!.tags).toContain('aisle')
+    // 其余列不靠过道
+    expect(byId.get('r1c1')!.tags).not.toContain('aisle')
+    expect(byId.get('r1c4')!.tags).not.toContain('aisle')
+    // hasAisleAccess 与座位标记是同一套结论
+    for (const s of seats) expect(hasAisleAccess(layout, s)).toBe(s.tags.includes('aisle'))
+    // 无过道配置时仍有首末列
+    const noAisle: LayoutConfig = { ...layout, aisles: [] }
+    const edgeOnly = buildSeats(noAisle).filter((s) => s.tags.includes('aisle'))
+    expect(edgeOnly).toHaveLength(noAisle.rows * 2)
+    // 小组围坐模式同样适用（边缘列便于进出）
+    const groups: LayoutConfig = { rows: 2, cols: 4, aisles: [], mode: 'groups', doorSide: 'left' }
+    const gSeats = buildSeats(groups)
+    expect(gSeats.filter((s) => s.tags.includes('aisle'))).toHaveLength(4)
   })
 
   it('位置分：越靠前、越靠中间分数越低', () => {

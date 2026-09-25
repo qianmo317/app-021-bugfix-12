@@ -155,6 +155,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-weak)
 .tag-back { border-color: #fcd34d; background: #fffaf0; }
 .tag-window { box-shadow: inset 3px 0 0 #7dd3fc; }
 .tag-door { box-shadow: inset -3px 0 0 #86efac; }
+/* 门在左侧时，靠窗/靠门标记的阴影随之换边（阴影始终朝向门窗所在的一侧） */
+.seatmap-door-left .tag-window { box-shadow: inset -3px 0 0 #7dd3fc; }
+.seatmap-door-left .tag-door { box-shadow: inset 3px 0 0 #86efac; }
 .seat-occupied { cursor: grab; }
 .seat-occupied:active { cursor: grabbing; }
 .seat-occupied:hover { border-color: var(--brand); }

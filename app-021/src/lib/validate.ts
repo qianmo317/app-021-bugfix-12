@@ -1,5 +1,5 @@
 import type { ClassEntity } from '../types'
-import { middleColSet } from './layout'
+import { hasAisleAccess, middleColSet } from './layout'
 
 // 配置校验：在生成前给出人话提示（前置校验，避免引擎抛晦涩错误）
 export function validateClass(cls: ClassEntity): string[] {
@@ -32,7 +32,7 @@ export function validateClass(cls: ClassEntity): string[] {
   if (middleNeed > mc * cls.layout.rows) {
     errors.push(`需中间列的学生 ${middleNeed} 人，超过中间列容量 ${mc * cls.layout.rows} 个`)
   }
-  const aisleCap = cls.seats.filter((s) => s.tags.includes('aisle')).length
+  const aisleCap = cls.seats.filter((s) => hasAisleAccess(cls.layout, s)).length
   const mobilityNeed = cls.students.filter((s) => s.special?.includes('mobility')).length
   if (mobilityNeed > aisleCap) {
     errors.push(`行动不便的学生 ${mobilityNeed} 人，超过靠过道座位容量 ${aisleCap} 个`)
@@ -45,8 +45,7 @@ export function validateClass(cls: ClassEntity): string[] {
     if (s.vision === 'front_required' && seat.row >= frontRows)
       errors.push(`「${s.name}」视力需前排，但固定座位在第 ${seat.row + 1} 排`)
     if (s.special?.includes('mobility')) {
-      const ok = seat.tags.includes('aisle') || seat.col === 0 || seat.col === cls.layout.cols - 1
-      if (!ok) errors.push(`「${s.name}」行动不便需靠过道，但固定座位不靠过道`)
+      if (!hasAisleAccess(cls.layout, seat)) errors.push(`「${s.name}」行动不便需靠过道，但固定座位不靠过道`)
     }
   }
   return errors

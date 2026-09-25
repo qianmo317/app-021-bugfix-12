@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from '../router'
 import { useStore } from '../store'
 import type { ClassEntity, LayoutConfig, Student } from '../types'
-import { buildSeats, specialLabel, visionLabel } from '../lib/layout'
+import { buildSeats, hasAisleAccess, specialLabel, visionLabel } from '../lib/layout'
 import { validateClass } from '../lib/validate'
 import { uid } from '../lib/id'
 import { SeatGrid } from '../components/SeatGrid'
@@ -131,6 +131,7 @@ export function Setup({ classId }: { classId: string }) {
 
 // ---------- 座位布局 ----------
 function LayoutEditor({ cls, onSave }: { cls: ClassEntity; onSave: (c: ClassEntity, changed: boolean) => void }) {
+  const aisleCap = cls.seats.filter((s) => hasAisleAccess(cls.layout, s)).length
   const patch = (p: Partial<LayoutConfig>) => {
     const layout = { ...cls.layout, ...p }
     let seats = buildSeats(layout)
@@ -208,7 +209,8 @@ function LayoutEditor({ cls, onSave }: { cls: ClassEntity; onSave: (c: ClassEnti
         <div className="muted small">
           自动标注：<b>前排/中排/后排</b>（按 1/3 行）、<b>靠窗</b>、<b>靠门</b>、<b>靠过道</b>；
           「讲台侧」等特殊座位标记可在需求中补充说明。前排座位数 = 前 {cls.constraints.frontRows} 排 ×{' '}
-          {cls.layout.cols} 列 = {Math.min(cls.constraints.frontRows, cls.layout.rows) * cls.layout.cols} 个。
+          {cls.layout.cols} 列 = {Math.min(cls.constraints.frontRows, cls.layout.rows) * cls.layout.cols} 个；
+          靠过道座位数 = {aisleCap} 个（首末列及过道旁，行动不便的学生只能安排在这些座位）。
         </div>
       </div>
     </section>

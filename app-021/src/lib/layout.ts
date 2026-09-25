@@ -10,15 +10,16 @@ export function seatIdOf(row: number, col: number): string {
 export function buildSeats(layout: LayoutConfig): Seat[] {
   const seats: Seat[] = []
   const frontThird = Math.max(1, Math.ceil(layout.rows / 3))
+  // 门固定在设置的一侧，窗在另一侧
+  const doorCol = layout.doorSide === 'left' ? 0 : layout.cols - 1
+  const windowCol = layout.doorSide === 'left' ? layout.cols - 1 : 0
   for (let row = 0; row < layout.rows; row++) {
     for (let col = 0; col < layout.cols; col++) {
       const tags: SeatTag[] = []
       if (row < frontThird) tags.push('front')
       else if (row >= layout.rows - frontThird) tags.push('back')
       else tags.push('middle')
-      if (layout.mode === 'rows' && isAisleSeat(layout, row, col)) tags.push('aisle')
-      const doorCol = layout.cols - 1
-      const windowCol = 0
+      if (isAisleSeat(layout, row, col)) tags.push('aisle')
       if (col === doorCol) tags.push('door')
       if (col === windowCol) tags.push('window')
       if (layout.mode === 'groups') tags.push(`group:${groupOf(row, col, layout.cols)}` as SeatTag)
@@ -28,13 +29,20 @@ export function buildSeats(layout: LayoutConfig): Seat[] {
   return seats
 }
 
+// 靠过道判定（全应用唯一规矩）：紧邻某条过道，或处于首列 / 末列。
+// 座位标记、容量提示、排座引擎、公平性检查都以此为准。
 export function isAisleSeat(layout: LayoutConfig, row: number, col: number): boolean {
   void row
-  // 靠过道：紧邻某条过道的座位
+  if (col === 0 || col === layout.cols - 1) return true
   for (const a of layout.aisles) {
     if (col === a || col === a + 1) return true
   }
   return false
+}
+
+// 座位级判定：座位已带 aisle 标记（含手动标注）或按布局规则命中，即视为靠过道
+export function hasAisleAccess(layout: LayoutConfig, seat: Seat): boolean {
+  return seat.tags.includes('aisle') || isAisleSeat(layout, seat.row, seat.col)
 }
 
 // 小组围坐：每 4 人（2×2）一组

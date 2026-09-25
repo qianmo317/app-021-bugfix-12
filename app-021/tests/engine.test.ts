@@ -73,6 +73,22 @@ describe('引擎：硬约束', () => {
     cls.students[1].fixedSeatId = 'r0c0'
     expect(() => generatePlan(cls)).toThrow(/固定座位冲突/)
   })
+
+  it('行动不便学生可坐首末列（靠过道判定不少半边）', () => {
+    // 2×3 无过道：靠过道座位 = 首末列共 4 个；4 名行动不便学生正好坐满
+    const cls = makeClass({ rows: 2, cols: 3, aisles: [], weeks: 4, seed: 5 })
+    for (let i = 0; i < 4; i++) cls.students[i].special = ['mobility']
+    const plan = generatePlan(cls)
+    expect(plan).toHaveLength(4)
+    for (const asg of plan) {
+      for (let i = 0; i < 4; i++) {
+        const seatId = Object.entries(asg.map).find(([, v]) => v === cls.students[i].id)![0]
+        const col = Number(seatId.match(/c(\d+)/)![1])
+        expect([0, 2]).toContain(col) // 末列（c2）也算靠过道
+      }
+      expect(weekHardViolations(cls, asg.week, asg.map)).toHaveLength(0)
+    }
+  })
 })
 
 describe('引擎：增量重生成（§8）', () => {

@@ -1,6 +1,6 @@
 import type { Assignment, ClassEntity, Student } from '../types'
 import { InfeasibleError } from '../types'
-import { buildSeatIndex, middleColSet, type SeatIndex } from './layout'
+import { buildSeatIndex, hasAisleAccess, middleColSet, type SeatIndex } from './layout'
 import { hashSeed, mulberry32 } from './rng'
 
 // ================= 约束求解引擎 =================
@@ -53,7 +53,7 @@ function prepare(cls: ClassEntity): Prepared {
 
   const aisleAccess = new Uint8Array(S)
   cls.seats.forEach((seat, i) => {
-    aisleAccess[i] = seat.tags.includes('aisle') || seat.col === 0 ? 1 : 0
+    aisleAccess[i] = hasAisleAccess(cls.layout, seat) ? 1 : 0
   })
 
   const fixedSeat = new Int32Array(n).fill(-1)
