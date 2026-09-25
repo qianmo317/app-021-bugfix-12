@@ -7,6 +7,7 @@ import {
 } from '../src/lib/engine'
 import { InfeasibleError } from '../src/types'
 import { computeFairness, previewSwap, weekHardViolations, weekStats } from '../src/lib/fairness'
+import { validateClass } from '../src/lib/validate'
 import { makeClass, makeStudent } from './helpers'
 
 describe('引擎：可复现性', () => {
@@ -72,6 +73,32 @@ describe('引擎：硬约束', () => {
     cls.students[0].fixedSeatId = 'r0c0'
     cls.students[1].fixedSeatId = 'r0c0'
     expect(() => generatePlan(cls)).toThrow(/固定座位冲突/)
+  })
+
+  it('行动不便学生：首末列与内部过道两侧同属靠过道，容量提示与引擎同源', () => {
+    // 2 行 4 列、无内部过道：靠过道座位 = 首末列 2×2 = 4
+    const cls = makeClass({ rows: 2, cols: 4, aisles: [], weeks: 6, students: [] })
+    cls.students = []
+    for (let i = 0; i < 4; i++) {
+      cls.students.push(makeStudent({ name: `行动${i + 1}号`, special: ['mobility'], mustApartFrom: [] }))
+    }
+    cls.students.push(makeStudent({ name: '普通1号', mustApartFrom: [] }))
+    cls.students.push(makeStudent({ name: '普通2号', mustApartFrom: [] }))
+    // 配置校验不报容量不足（提示口径 = 4）
+    expect(validateClass(cls).filter((e) => e.includes('靠过道'))).toHaveLength(0)
+    const plan = generatePlan(cls)
+    const aisleIds = new Set(['r0c0', 'r0c3', 'r1c0', 'r1c3'])
+    for (const asg of plan) {
+      expect(weekHardViolations(cls, asg.week, asg.map)).toHaveLength(0)
+      for (const st of cls.students.filter((s) => s.special?.includes('mobility'))) {
+        const seatId = Object.entries(asg.map).find(([, v]) => v === st.id)![0]
+        expect(aisleIds.has(seatId)).toBe(true)
+      }
+    }
+    // 再来第 5 名行动不便学生 → 容量 4，配置提示与引擎都应拒绝
+    cls.students.push(makeStudent({ name: '行动5号', special: ['mobility'], mustApartFrom: [] }))
+    expect(validateClass(cls).join('；')).toContain('靠过道座位容量 4')
+    expect(() => generatePlan(cls)).toThrow(/靠过道座位不足/)
   })
 })
 

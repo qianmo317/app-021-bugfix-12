@@ -1,5 +1,5 @@
 import type { ClassEntity, Seat, Student, StudentId } from '../types'
-import { buildSeatIndex, middleColSet, positionScore } from './layout'
+import { buildSeatIndex, isAisleSeat, middleColSet, positionScore } from './layout'
 
 // ================= 公平性报告（§4.4 / §10） =================
 
@@ -69,9 +69,8 @@ export function seatViolationFor(
   if (student.vision === 'middle_required' && !mc.has(seat.col)) out.push('视力需中间，但被安排在边列')
   if (student.special?.includes('hearing') && seat.row >= Math.ceil(cls.layout.rows / 2))
     out.push('听力需前排一半，但被安排在后排')
-  if (student.special?.includes('mobility')) {
-    const ok = seat.tags.includes('aisle') || seat.col === 0 || seat.col === cls.layout.cols - 1
-    if (!ok) out.push('行动不便需靠过道，但被安排在中间位')
+  if (student.special?.includes('mobility') && !isAisleSeat(cls.layout, seat.row, seat.col)) {
+    out.push('行动不便需靠过道，但被安排在中间位')
   }
   if (student.fixedSeatId && student.fixedSeatId !== seat.id) out.push('未坐在固定座位')
   return out

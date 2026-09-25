@@ -76,7 +76,11 @@ export function SeatGrid({ cls, assignment, draggable, onSwapPreview, onDropSwap
   const { rows } = cls.layout
 
   return (
-    <div className={compact ? 'seatmap seatmap-print' : 'seatmap'} data-testid="seat-grid">
+    <div
+      className={compact ? 'seatmap seatmap-print' : 'seatmap'}
+      data-testid="seat-grid"
+      data-door-side={cls.layout.doorSide}
+    >
       <div className="stage-bar" aria-label="讲台方向">
         <span>▲ 讲台</span>
       </div>
@@ -169,7 +173,9 @@ export function SeatGrid({ cls, assignment, draggable, onSwapPreview, onDropSwap
         })}
       </div>
       <div className="seatmap-footer">
-        <span>第 1 排在最上方（讲台侧）· 左侧为靠窗</span>
+        <span>
+          第 1 排在最上方（讲台侧）· {cls.layout.doorSide === 'left' ? '左侧为靠门、右侧为靠窗' : '左侧为靠窗、右侧为靠门'}
+        </span>
       </div>
     </div>
   )

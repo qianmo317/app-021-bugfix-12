@@ -63,7 +63,7 @@ class InfeasibleError extends Error {}
 
 ## 8. 关键算法
 - **位置分**：`positionScore(seat) = rowWeight + middleWeight`，`rowWeight = row/(rows-1)*2 ∈ [0,2]`，`middleWeight = |col-(cols-1)/2| / ((cols-1)/2) ∈ [0,1]`，**分数越低位置越好**（`src/lib/layout.ts:52-57`）。中间列集合取到中轴距离不超过半宽一半的连续块（`layout.ts:61-68`）。
-- **约束模型**：个体硬约束为视力需前排（`row < frontRows`）、视力需中间列、听力需前一半排（`ceil(rows/2)`）、行动不便需靠过道（座位 `aisle` 或首末列）、固定座位；成对硬约束为「必须分开」不得同桌。硬约束在代价函数中用 `HARD = 1e7` 表示，等价于禁止（`src/lib/engine.ts:11,115-138`）。
+- **约束模型**：个体硬约束为视力需前排（`row < frontRows`）、视力需中间列、听力需前一半排（`ceil(rows/2)`）、行动不便需靠过道（统一走 `isAisleSeat()`：行列模式下紧邻内部过道的座位，或任何模式下教室两侧的首/末列）、固定座位；成对硬约束为「必须分开」不得同桌。座位标记、配置页容量提示、引擎与手工交换校验共用同一个判定函数（`src/lib/layout.ts` 的 `isAisleSeat` / `aisleSeatCount`，`src/lib/engine.ts:11,115-138`）。门在左还是右由 `doorSide` 决定、窗在另一侧，`buildSeats()` 据此打 `door`/`window` 标签，座位图阴影方向与图脚文案同步翻转（`layout.ts`、`SeatGrid.tsx`）。
 - **代价常量**：`W_HEIGHT = 4`（身高序违背）、`W_MIX = 2`（同桌同分层）、`FRESH_PAIR = 0.3`（新同桌微奖励），同桌第 1 / 2 / 3 次重复为 `REPEAT1 = 3`、`REPEAT2 = 60`、`REPEAT3 = 500`（`engine.ts:12-17`）；同桌对用 `pairKey(a,b) = a*4096+b` 编码（`engine.ts:110-112`）。
 - **初始分配**：固定座位学生先落位；其余学生按「可行座位数从少到多」贪心，每人在可行座位中随机挑一个；无可行座位时抛 `InfeasibleError` 并说明是哪一类座位不足（`engine.ts:179-223`）。
 - **模拟退火**：`iters = min(60000, max(15000, n*400))`，温度从 `T0 = 3.0` 按几何下降 `T = T0·(T1/T0)^(it/iters)` 到 `T1 = 0.02`；每步随机取一个非固定学生与一个随机座位做移动 / 交换，`Δ ≤ 0` 或 `rand < exp(-Δ/T)` 时接受（`engine.ts:468-492`）。退火后最多 200 轮贪心修复残余硬约束（`engine.ts:495-526`）；单周最多重试 `MAX_ATTEMPTS = 6` 次，仍不可行则抛错（`engine.ts:19,573-585`）。

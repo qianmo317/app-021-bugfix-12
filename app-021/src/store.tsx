@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { Assignment, ClassEntity } from './types'
 import { storage } from './lib/storage'
 import { uid } from './lib/id'
-import { buildSeats } from './lib/layout'
+import { buildSeats, normalizeSeats } from './lib/layout'
 import {
   generateMissingWeeks,
   generatePlan,
@@ -59,7 +59,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     storage
       .getAll()
-      .then((all) => setClasses(all.sort((a, b) => a.createdAt - b.createdAt)))
+      .then((all) => {
+        // 旧版本数据的座位标签（门窗写死、边列不标过道）迁移到当前规则
+        for (const cls of all) cls.seats = normalizeSeats(cls.layout, cls.seats ?? [])
+        setClasses(all.sort((a, b) => a.createdAt - b.createdAt))
+      })
       .catch((e) => console.error('读取本地数据失败', e))
       .finally(() => setReady(true))
   }, [])
@@ -106,6 +110,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/samples/demo-class.json')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const sample = (await res.json()) as ClassEntity
+      sample.seats = normalizeSeats(sample.layout, sample.seats ?? [])
       const exists = classes.some((c) => c.id === sample.id)
       if (exists) sample.id = uid()
       if (exists) sample.name = `${sample.name}（副本）`

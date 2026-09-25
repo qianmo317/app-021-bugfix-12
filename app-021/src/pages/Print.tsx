@@ -62,7 +62,9 @@ export function Print({ classId }: { classId: string }) {
             </header>
             <SeatGrid cls={cls} assignment={asg} compact />
             <footer className="print-foot">
-              <span>▲ 上方为讲台方向 · 左右按教室实际门窗方向标注</span>
+              <span>
+                ▲ 上方为讲台方向 · {cls.layout.doorSide === 'left' ? '左为靠门、右为靠窗' : '左为靠窗、右为靠门'} · 底边琥珀色描边为靠过道
+              </span>
               <span>
                 标记说明：<b>前排</b>=近视照顾 <b>中间</b>=视力需中间 <b>听力</b>=听力照顾 <b>过道</b>=行动不便照顾 <b>T1/T2/T3</b>=学习分层
               </span>

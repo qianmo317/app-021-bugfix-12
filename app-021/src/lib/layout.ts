@@ -10,15 +10,15 @@ export function seatIdOf(row: number, col: number): string {
 export function buildSeats(layout: LayoutConfig): Seat[] {
   const seats: Seat[] = []
   const frontThird = Math.max(1, Math.ceil(layout.rows / 3))
+  const doorCol = doorColOf(layout)
+  const windowCol = windowColOf(layout)
   for (let row = 0; row < layout.rows; row++) {
     for (let col = 0; col < layout.cols; col++) {
       const tags: SeatTag[] = []
       if (row < frontThird) tags.push('front')
       else if (row >= layout.rows - frontThird) tags.push('back')
       else tags.push('middle')
-      if (layout.mode === 'rows' && isAisleSeat(layout, row, col)) tags.push('aisle')
-      const doorCol = layout.cols - 1
-      const windowCol = 0
+      if (isAisleSeat(layout, row, col)) tags.push('aisle')
       if (col === doorCol) tags.push('door')
       if (col === windowCol) tags.push('window')
       if (layout.mode === 'groups') tags.push(`group:${groupOf(row, col, layout.cols)}` as SeatTag)
@@ -28,13 +28,49 @@ export function buildSeats(layout: LayoutConfig): Seat[] {
   return seats
 }
 
+// 门窗位置（全应用唯一事实源）：门按配置在左/右，窗在另一侧
+export function doorColOf(layout: LayoutConfig): number {
+  return layout.doorSide === 'left' ? 0 : layout.cols - 1
+}
+
+export function windowColOf(layout: LayoutConfig): number {
+  return layout.doorSide === 'left' ? layout.cols - 1 : 0
+}
+
+// 「靠过道」的唯一判定（座位标记、容量提示、排座引擎、手工交换校验都走这里）：
+// 行列模式下紧邻某条内部过道（过道在第 a 列与第 a+1 列之间，故 col === a 或 a+1）；
+// 任何模式下，教室两侧的首列/末列都临外侧通道（门、走道），同样算靠过道。
 export function isAisleSeat(layout: LayoutConfig, row: number, col: number): boolean {
   void row
-  // 靠过道：紧邻某条过道的座位
-  for (const a of layout.aisles) {
-    if (col === a || col === a + 1) return true
+  if (col === 0 || col === layout.cols - 1) return true
+  if (layout.mode === 'rows') {
+    for (const a of layout.aisles) {
+      if (col === a || col === a + 1) return true
+    }
   }
   return false
+}
+
+// 靠过道座位总数（容量提示与引擎同源，避免提示与实际可用对不上）
+export function aisleSeatCount(layout: LayoutConfig): number {
+  let n = 0
+  for (let row = 0; row < layout.rows; row++) {
+    for (let col = 0; col < layout.cols; col++) {
+      if (isAisleSeat(layout, row, col)) n++
+    }
+  }
+  return n
+}
+
+// 老数据迁移：座位标签是按旧规则存进 IndexedDB / 示例文件的（门窗方向写死、
+// 边列不标靠过道）。维度与 id 仍规范时，仅按当前规则刷新标签；否则整体重建。
+export function normalizeSeats(layout: LayoutConfig, seats: Seat[]): Seat[] {
+  const canonical = buildSeats(layout)
+  const expected = new Set(canonical.map((s) => s.id))
+  const intact = seats.length === canonical.length && seats.every((s) => expected.has(s.id))
+  if (!intact) return canonical
+  const tagsById = new Map(canonical.map((s) => [s.id, s.tags]))
+  return seats.map((s) => ({ ...s, tags: tagsById.get(s.id) ?? s.tags }))
 }
 
 // 小组围坐：每 4 人（2×2）一组

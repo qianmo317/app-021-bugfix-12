@@ -153,8 +153,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-weak)
 .tag-front { border-color: #93c5fd; background: #f0f7ff; }
 .tag-middle { border-color: #ddd6fe; background: #faf9ff; }
 .tag-back { border-color: #fcd34d; background: #fffaf0; }
-.tag-window { box-shadow: inset 3px 0 0 #7dd3fc; }
-.tag-door { box-shadow: inset -3px 0 0 #86efac; }
+/* 窗（蓝）/门（绿）内阴影跟随配置的门方向；默认门在右、窗在左 */
+.seatmap[data-door-side='right'] .tag-window { box-shadow: inset 3px 0 0 #7dd3fc; }
+.seatmap[data-door-side='right'] .tag-door { box-shadow: inset -3px 0 0 #86efac; }
+.seatmap[data-door-side='left'] .tag-window { box-shadow: inset -3px 0 0 #7dd3fc; }
+.seatmap[data-door-side='left'] .tag-door { box-shadow: inset 3px 0 0 #86efac; }
+/* 靠过道：底边琥珀色描边（与窗/门侧边阴影可叠加，不靠颜色区分信息） */
+.tag-aisle { box-shadow: inset 0 -3px 0 0 #fbbf24; }
+/* 边列座位同时靠窗/门与靠过道：两侧阴影需合并在一条 box-shadow 里 */
+.seatmap[data-door-side='right'] .tag-window.tag-aisle { box-shadow: inset 3px 0 0 #7dd3fc, inset 0 -3px 0 0 #fbbf24; }
+.seatmap[data-door-side='right'] .tag-door.tag-aisle { box-shadow: inset -3px 0 0 #86efac, inset 0 -3px 0 0 #fbbf24; }
+.seatmap[data-door-side='left'] .tag-window.tag-aisle { box-shadow: inset -3px 0 0 #7dd3fc, inset 0 -3px 0 0 #fbbf24; }
+.seatmap[data-door-side='left'] .tag-door.tag-aisle { box-shadow: inset 3px 0 0 #86efac, inset 0 -3px 0 0 #fbbf24; }
 .seat-occupied { cursor: grab; }
 .seat-occupied:active { cursor: grabbing; }
 .seat-occupied:hover { border-color: var(--brand); }
